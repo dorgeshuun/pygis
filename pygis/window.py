@@ -55,7 +55,7 @@ class MyWindow(QWidget):
         self.update()
 
     def handleMouseRelease(self, e: QMouseEvent):
-        if is_left_button(e) and self.isLeftButtonPressed:
+        if is_left_button(e):
             self.isLeftButtonPressed = False
 
     def __init__(self):
