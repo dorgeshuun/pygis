@@ -1,9 +1,22 @@
 from PyQt6.QtWidgets import QWidget
 from PyQt6.QtGui import QMouseEvent, QPainter, QColor, QPaintEvent
-from PyQt6.QtCore import QRect
+from PyQt6.QtCore import QRect, QPoint
+
+import math
+from dataclasses import dataclass
 
 SQR_X_START = 250
 SQR_Y_START = 250
+
+WIDTH = 800
+HEIGHT = 600
+
+
+@dataclass
+class Tile:
+    side = 100
+    x: int
+    y: int
 
 
 def is_left_button(e: QMouseEvent):
@@ -18,12 +31,32 @@ def get_pos_from_mouse_event(e: QMouseEvent):
 
 class MyWindow(QWidget):
     def paintEvent(self, _: QPaintEvent):
-        red = QColor.fromString("red")
-        rect = QRect(self.sqr_x, self.sqr_y, 100, 100)
         painter = QPainter()
         painter.begin(self)
-        painter.setBrush(red)
-        painter.drawRect(rect)
+
+        black = QColor.fromString("black")
+        painter.setPen(black)
+
+        imin = -math.ceil(self.sqr_x / Tile.side)
+        jmin = -math.ceil(self.sqr_y / Tile.side)
+
+        imax = math.ceil((WIDTH - self.sqr_x) / Tile.side)
+        jmax = math.ceil((HEIGHT - self.sqr_y) / Tile.side)
+
+        for i in range(imin, imax):
+            for j in range(jmin, jmax):
+                t = Tile(i, j)
+
+                x = self.sqr_x + i * t.side
+                y = self.sqr_y + j * t.side
+
+                rect = QRect(x, y, t.side, t.side)
+                painter.drawRect(rect)
+
+                label_pos = QPoint(x + t.side // 2, y + t.side // 2)
+                label_txt = "{}, {}".format(i, j)
+                painter.drawText(label_pos, label_txt)
+
         painter.end()
 
     def handleMousePress(self, e: QMouseEvent):
@@ -65,7 +98,7 @@ class MyWindow(QWidget):
         self.sqr_x = SQR_X_START
         self.sqr_y = SQR_Y_START
 
-        self.resize(800, 600)
+        self.resize(WIDTH, HEIGHT)
         self.setWindowTitle("pygis")
         self.setStyleSheet('background-color:white')
 
