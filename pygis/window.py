@@ -2,14 +2,17 @@ from PyQt6.QtWidgets import QWidget
 from PyQt6.QtGui import QMouseEvent, QPainter, QColor, QPaintEvent
 from PyQt6.QtCore import QRect, QPoint
 
-import math
 from dataclasses import dataclass
+
+from pygis.map import Map
 
 SQR_X_START = 250
 SQR_Y_START = 250
 
 WIDTH = 800
 HEIGHT = 600
+
+TILE_SIDE = 100
 
 
 @dataclass
@@ -37,25 +40,19 @@ class MyWindow(QWidget):
         black = QColor.fromString("black")
         painter.setPen(black)
 
-        imin = -math.ceil(self.sqr_x / Tile.side)
-        jmin = -math.ceil(self.sqr_y / Tile.side)
+        map = Map(WIDTH, HEIGHT, self.sqr_x, self.sqr_y, TILE_SIDE)
 
-        imax = math.ceil((WIDTH - self.sqr_x) / Tile.side)
-        jmax = math.ceil((HEIGHT - self.sqr_y) / Tile.side)
+        for point, tile in map.tiles.items():
+            rect = QRect(point.x, point.y, TILE_SIDE, TILE_SIDE)
 
-        for i in range(imin, imax):
-            for j in range(jmin, jmax):
-                t = Tile(i, j)
+            label_pos_x = point.x + TILE_SIDE // 2
+            label_pos_y = point.y + TILE_SIDE // 2
+            label_pos = QPoint(label_pos_x, label_pos_y)
 
-                x = self.sqr_x + i * t.side
-                y = self.sqr_y + j * t.side
+            label_txt = "{}, {}".format(tile.x, tile.y)
 
-                rect = QRect(x, y, t.side, t.side)
-                painter.drawRect(rect)
-
-                label_pos = QPoint(x + t.side // 2, y + t.side // 2)
-                label_txt = "{}, {}".format(i, j)
-                painter.drawText(label_pos, label_txt)
+            painter.drawRect(rect)
+            painter.drawText(label_pos, label_txt)
 
         painter.end()
 
