@@ -71,7 +71,7 @@ class MyWindow(QWidget):
         self.mouseMoveEvent = self.handleMouseMove
         self.mouseReleaseEvent = self.handleMouseRelease
 
-        self.state = State.from_what(
+        self.state = State.init(
             WIDTH, HEIGHT, SQR_X_START, SQR_Y_START, TILE_SIDE)
 
         self.show()
