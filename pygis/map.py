@@ -22,6 +22,11 @@ class Map:
     origin_y: int
     tile_side: int
 
+    def move(self, dx: int, dy: int):
+        x = self.origin_x + dx
+        y = self.origin_y + dy
+        return Map(self.width, self.height, x, y, self.tile_side)
+
     @property
     def tiles(self):
         imin = -math.ceil(self.origin_x / self.tile_side)
