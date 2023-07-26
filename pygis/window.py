@@ -26,7 +26,7 @@ def get_pos_from_mouse_event(e: QMouseEvent):
     return int(x), int(y)
 
 
-def draw_tile(painter: QPainter, x: int, y: int, img: QImage):
+def draw_tile(painter: QPainter, x: int, y: int, img: QImage | None):
     rect = QRect(x, y, TILE_SIDE, TILE_SIDE)
     if img is None:
         painter.drawRect(rect)
