@@ -78,7 +78,6 @@ class MyWindow(QWidget):
     def mouseMoveEvent(self, e: QMouseEvent):
         x, y = get_pos_from_mouse_event(e)
         self.state = self.state.move_to(x, y)
-
         self.update()
 
     def mouseReleaseEvent(self, e: QMouseEvent):
