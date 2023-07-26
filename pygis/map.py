@@ -8,10 +8,11 @@ class Point:
     y: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class Tile:
     x: int
     y: int
+    z: int
 
 
 @dataclass
@@ -43,7 +44,7 @@ class Map:
                 y = self.origin_y + j * self.tile_side
 
                 p = Point(x, y)
-                t = Tile(i, j)
+                t = Tile(i, j, 0)
 
                 result[p] = t
 
