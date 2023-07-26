@@ -17,7 +17,11 @@ def get_rnd_color():
 @app.get("/tile")
 async def tile(x: int, y: int, z: int):
     output = BytesIO()
-    img = Image.new(mode="RGB", size=(width, height), color=get_rnd_color())
+    img = Image.new(
+        mode="RGB",
+        size=(width, height),
+        color=get_rnd_color()
+    )
     img.save(output, format="JPEG")
     output.seek(0)
     return StreamingResponse(output, media_type="image/jpeg")
