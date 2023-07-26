@@ -9,7 +9,7 @@ class Tile_Cache:
         self.cached = {}
         self.priority = []
 
-    def get_tiles(self, tiles: list[Tile]):
+    def fetch_tiles(self, tiles: list[Tile]):
         for t in tiles:
             if t in self.cached:
                 continue
@@ -18,6 +18,7 @@ class Tile_Cache:
                 continue
 
             self.fetching.add(t)
+
             yield t
 
     def clean_cache(self, tiles: list[Tile]):
@@ -28,9 +29,12 @@ class Tile_Cache:
         priority = set(self.priority)
         self.cached = {k: v for k, v in self.cached.items() if k in priority}
 
-    def request_tiles(self, tiles: list[Tile]):
-        yield from self.get_tiles(tiles)
+    def poll_tiles(self, tiles: list[Tile]):
+        yield from self.fetch_tiles(tiles)
         self.clean_cache(tiles)
+
+    def get_tile(self, t: Tile):
+        return self.cached.get(t)
 
     def update_tile(self, tile: Tile, data: str):
         self.cached[tile] = data

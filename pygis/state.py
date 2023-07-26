@@ -6,6 +6,10 @@ from pygis.map import Map
 @dataclass
 class State:
     @property
+    def displayed_tiles(self):
+        return self.map.tiles
+
+    @property
     def map(self):
         raise NotImplementedError()
 

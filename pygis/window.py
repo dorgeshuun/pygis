@@ -32,7 +32,7 @@ def get_pos_from_mouse_event(e: QMouseEvent):
 class MyWindow(QWidget):
     def draw_tile(self, painter: QPainter, x: int, y: int, tile: Tile):
         rect = QRect(x, y, TILE_SIDE, TILE_SIDE)
-        img = self.displayed_tiles.get(tile)
+        img = self.tile_cache.get_tile(tile)
 
         if img is None:
             painter.drawRect(rect)
@@ -48,16 +48,11 @@ class MyWindow(QWidget):
         painter = QPainter()
         painter.begin(self)
 
-        for point, tile in self.state.map.tiles.items():
+        for point, tile in self.state.displayed_tiles.items():
             self.draw_tile(painter, point.x, point.y, tile)
             self.draw_label(painter, point.x, point.y, tile)
 
         painter.end()
-
-    def mousePressEvent(self, e: QMouseEvent):
-        if is_left_button(e):
-            x, y = get_pos_from_mouse_event(e)
-            self.state = self.state.to_drag_state(x, y)
 
     def fetch_tile(self, t: Tile):
         url = "{}?x={}&y={}&z={}".format(TILE_URL, t.x, t.y, t.z)
@@ -67,7 +62,6 @@ class MyWindow(QWidget):
 
     def on_success(self, tile: Tile, img: JpegImagePlugin.JpegImageFile):
         self.tile_cache.update_tile(tile, img)
-        self.displayed_tiles[tile] = img
         self.update()
 
     def enqueue_tile(self, tile: Tile):
@@ -75,18 +69,26 @@ class MyWindow(QWidget):
         worker.signals.finished.connect(self.on_success)
         self.thread_pool.start(worker)
 
+    def poll_tiles(self):
+        displayed_tiles = list(self.state.displayed_tiles.values())
+        missing_tiles = self.tile_cache.poll_tiles(displayed_tiles)
+        for tile in missing_tiles:
+            self.enqueue_tile(tile)
+
+    def mousePressEvent(self, e: QMouseEvent):
+        if is_left_button(e):
+            x, y = get_pos_from_mouse_event(e)
+            self.state = self.state.to_drag_state(x, y)
+
     def mouseMoveEvent(self, e: QMouseEvent):
         x, y = get_pos_from_mouse_event(e)
         self.state = self.state.move_to(x, y)
         self.update()
 
     def mouseReleaseEvent(self, e: QMouseEvent):
+        self.poll_tiles()
         if is_left_button(e):
             self.state = self.state.to_idle_state()
-
-        tiles_in_extent = list(self.state.map.tiles.values())
-        for missing_tile in self.tile_cache.request_tiles(tiles_in_extent):
-            self.enqueue_tile(missing_tile)
 
     def init_ui(self):
         self.resize(WIDTH, HEIGHT)
@@ -100,7 +102,7 @@ class MyWindow(QWidget):
 
         self.thread_pool = QThreadPool()
         self.tile_cache = Tile_Cache()
-        self.displayed_tiles = {}
         self.state = State.init(WIDTH, HEIGHT, ORIGIN_X, ORIGIN_Y, TILE_SIDE)
 
         self.init_ui()
+        self.poll_tiles()
