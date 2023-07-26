@@ -1,10 +1,8 @@
-import requests
-from io import BytesIO
-from PIL import Image, JpegImagePlugin
-
 from PyQt6.QtCore import QRect, QPoint, QThreadPool
 from PyQt6.QtGui import QMouseEvent, QPainter, QPaintEvent
 from PyQt6.QtWidgets import QWidget
+
+from PIL import JpegImagePlugin
 
 from pygis.state import State
 from pygis.map import Tile
@@ -16,7 +14,6 @@ HEIGHT = 600
 ORIGIN_X = 250
 ORIGIN_Y = 250
 TILE_SIDE = 100
-TILE_URL = "http://localhost:8000/tile"
 
 
 def is_left_button(e: QMouseEvent):
@@ -37,7 +34,7 @@ class MyWindow(QWidget):
         if img is None:
             painter.drawRect(rect)
         else:
-            painter.drawImage(rect, img.toqimage())
+            painter.drawImage(rect, img)
 
     def draw_label(self, painter: QPainter, x: int, y: int, tile):
         pos = QPoint(x + TILE_SIDE // 2, y + TILE_SIDE // 2)
@@ -54,26 +51,16 @@ class MyWindow(QWidget):
 
         painter.end()
 
-    def fetch_tile(self, t: Tile):
-        url = "{}?x={}&y={}&z={}".format(TILE_URL, t.x, t.y, t.z)
-        r = requests.get(url)
-        b_img = BytesIO(r.content)
-        return Image.open(b_img)
-
     def on_success(self, tile: Tile, img: JpegImagePlugin.JpegImageFile):
-        self.tile_cache.update_tile(tile, img)
+        self.tile_cache.update_tile(tile, img.toqimage())
         self.update()
-
-    def enqueue_tile(self, tile: Tile):
-        worker = Worker(self.fetch_tile, tile)
-        worker.signals.finished.connect(self.on_success)
-        self.thread_pool.start(worker)
 
     def poll_tiles(self):
         displayed_tiles = list(self.state.displayed_tiles.values())
         missing_tiles = self.tile_cache.poll_tiles(displayed_tiles)
         for tile in missing_tiles:
-            self.enqueue_tile(tile)
+            worker = Worker.make(tile, self.on_success)
+            self.thread_pool.start(worker)
 
     def mousePressEvent(self, e: QMouseEvent):
         if is_left_button(e):

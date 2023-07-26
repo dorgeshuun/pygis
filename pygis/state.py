@@ -6,12 +6,12 @@ from pygis.map import Map
 @dataclass
 class State:
     @property
-    def displayed_tiles(self):
-        return self.map.tiles
-
-    @property
     def map(self):
         raise NotImplementedError()
+
+    @property
+    def displayed_tiles(self):
+        return self.map.tiles
 
     @staticmethod
     def init(width: int, height: int, origin_x: int, origin_y: int, tile_side: int):
