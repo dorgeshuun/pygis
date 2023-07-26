@@ -1,5 +1,5 @@
 from PyQt6.QtCore import QRect, QPoint, QThreadPool
-from PyQt6.QtGui import QMouseEvent, QPainter, QPaintEvent
+from PyQt6.QtGui import QMouseEvent, QPainter, QPaintEvent, QImage
 from PyQt6.QtWidgets import QWidget
 
 from PIL import JpegImagePlugin
@@ -26,28 +26,30 @@ def get_pos_from_mouse_event(e: QMouseEvent):
     return int(x), int(y)
 
 
+def draw_tile(painter: QPainter, x: int, y: int, img: QImage):
+    rect = QRect(x, y, TILE_SIDE, TILE_SIDE)
+    if img is None:
+        painter.drawRect(rect)
+    else:
+        painter.drawImage(rect, img)
+
+
+def draw_label(painter: QPainter, x: int, y: int, tile):
+    pos = QPoint(x + TILE_SIDE // 2, y + TILE_SIDE // 2)
+    txt = "{}, {}".format(tile.x, tile.y)
+    painter.drawText(pos, txt)
+
+
 class MyWindow(QWidget):
-    def draw_tile(self, painter: QPainter, x: int, y: int, tile: Tile):
-        rect = QRect(x, y, TILE_SIDE, TILE_SIDE)
-        img = self.tile_cache.get_tile(tile)
-
-        if img is None:
-            painter.drawRect(rect)
-        else:
-            painter.drawImage(rect, img)
-
-    def draw_label(self, painter: QPainter, x: int, y: int, tile):
-        pos = QPoint(x + TILE_SIDE // 2, y + TILE_SIDE // 2)
-        txt = "{}, {}".format(tile.x, tile.y)
-        painter.drawText(pos, txt)
 
     def paintEvent(self, _: QPaintEvent):
         painter = QPainter()
         painter.begin(self)
 
         for point, tile in self.state.displayed_tiles.items():
-            self.draw_tile(painter, point.x, point.y, tile)
-            self.draw_label(painter, point.x, point.y, tile)
+            img = self.tile_cache.get_tile(tile)
+            draw_tile(painter, point.x, point.y, img)
+            draw_label(painter, point.x, point.y, tile)
 
         painter.end()
 
