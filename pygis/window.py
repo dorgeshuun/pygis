@@ -46,7 +46,7 @@ class MyWindow(QWidget):
         painter = QPainter()
         painter.begin(self)
 
-        for point, tile in self.state.displayed_tiles.items():
+        for point, tile in self.state.displayed_tiles:
             img = self.tile_cache.get_tile(tile)
             draw_tile(painter, point.x, point.y, img)
             draw_label(painter, point.x, point.y, tile)
@@ -58,7 +58,7 @@ class MyWindow(QWidget):
         self.update()
 
     def poll_tiles(self):
-        displayed_tiles = list(self.state.displayed_tiles.values())
+        displayed_tiles = [t for _, t in self.state.displayed_tiles]
         missing_tiles = self.tile_cache.poll_tiles(displayed_tiles)
         for tile in missing_tiles:
             worker = Worker.make(tile, self.on_success)

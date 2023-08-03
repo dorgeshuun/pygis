@@ -1,6 +1,6 @@
 from pygis.map import Tile
 
-MAX_TILE_COUNT = 1000
+MAX_TILE_COUNT = 250
 
 
 class Tile_Cache:
@@ -28,6 +28,7 @@ class Tile_Cache:
 
         priority = set(self.priority)
         self.cached = {k: v for k, v in self.cached.items() if k in priority}
+        self.fetching = {t for t in self.fetching if t in priority}
 
     def poll_tiles(self, tiles: list[Tile]):
         yield from self.fetch_tiles(tiles)

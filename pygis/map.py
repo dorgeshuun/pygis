@@ -36,8 +36,6 @@ class Map:
         imax = math.ceil((self.width - self.origin_x) / self.tile_side)
         jmax = math.ceil((self.height - self.origin_y) / self.tile_side)
 
-        result = {}
-
         for i in range(imin, imax):
             for j in range(jmin, jmax):
                 x = self.origin_x + i * self.tile_side
@@ -46,6 +44,4 @@ class Map:
                 p = Point(x, y)
                 t = Tile(i, j, 0)
 
-                result[p] = t
-
-        return result
+                yield p, t
