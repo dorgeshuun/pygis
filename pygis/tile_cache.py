@@ -23,6 +23,7 @@ class Tile_Cache:
     def __init__(self):
         self.executor = futures.ThreadPoolExecutor()
         self.cached = {}
+        self.fetching = set()
 
     def get(self, t: Tile):
         try:
@@ -34,10 +35,16 @@ class Tile_Cache:
     def update_tile(self, tile, on_success):
         img = fetch_tile(tile)
         self.cached[tile] = img
+        self.fetching.remove(tile)
         on_success()
 
     def update_many(self, tiles, on_success):
         for t in tiles:
             if t in self.cached:
                 continue
+
+            if t in self.fetching:
+                continue
+
+            self.fetching.add(t)
             self.executor.submit(self.update_tile, t, on_success)
