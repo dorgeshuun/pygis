@@ -6,6 +6,7 @@ from PIL import Image
 
 from pygis.map import Tile
 from pygis.tile_result import Tile_Result
+from pygis.cached_tile import Cached_Tile
 
 MAX_TILE_COUNT = 250
 
@@ -27,20 +28,28 @@ class Tile_Cache:
 
     def get(self, t: Tile):
         try:
-            img = self.cached[t]
+            img = self.cached[t].img
             return Tile_Result.ok(img)
         except KeyError:
             return Tile_Result.missing()
 
+    def update_all(self):
+        ttl_increased = ((k, v.increase_ttl) for k, v in self.cached.items())
+        ttl_ordered = sorted(ttl_increased, key=lambda x: x[1])
+        sliced = ttl_ordered[:MAX_TILE_COUNT]
+        self.cached = {t: ct for t, ct in sliced}
+
     def update_tile(self, tile, on_success):
         img = fetch_tile(tile)
-        self.cached[tile] = img
+        self.update_all()
+        self.cached[tile] = Cached_Tile.create(img)
         self.fetching.remove(tile)
         on_success()
 
     def update_many(self, tiles, on_success):
         for t in tiles:
             if t in self.cached:
+                self.cached[t] = self.cached[t].reset_ttl
                 continue
 
             if t in self.fetching:
