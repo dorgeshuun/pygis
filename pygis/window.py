@@ -1,13 +1,10 @@
-from PyQt6.QtCore import QRect, QPoint, QThreadPool
-from PyQt6.QtGui import QMouseEvent, QPainter, QPaintEvent, QImage
+from PyQt6.QtCore import QRect, QPoint
+from PyQt6.QtGui import QMouseEvent, QPainter
 from PyQt6.QtWidgets import QWidget
 
-from PIL import JpegImagePlugin
-
-from pygis.state import State
-from pygis.map import Tile
+from pygis.state import Context
 from pygis.tile_cache import Tile_Cache
-from pygis.worker import Worker
+
 
 WIDTH = 800
 HEIGHT = 600
@@ -26,58 +23,47 @@ def get_pos_from_mouse_event(e: QMouseEvent):
     return int(x), int(y)
 
 
-def draw_tile(painter: QPainter, x: int, y: int, img: QImage | None):
-    rect = QRect(x, y, TILE_SIDE, TILE_SIDE)
-    if img is None:
-        painter.drawRect(rect)
-    else:
-        painter.drawImage(rect, img)
-
-
-def draw_label(painter: QPainter, x: int, y: int, tile):
-    pos = QPoint(x + TILE_SIDE // 2, y + TILE_SIDE // 2)
-    txt = "{}, {}".format(tile.x, tile.y)
-    painter.drawText(pos, txt)
-
-
 class MyWindow(QWidget):
 
-    def paintEvent(self, _: QPaintEvent):
+    def paintEvent(self, _):
         painter = QPainter()
         painter.begin(self)
 
-        for point, tile in self.state.displayed_tiles:
-            img = self.tile_cache.get_tile(tile)
-            draw_tile(painter, point.x, point.y, img)
-            draw_label(painter, point.x, point.y, tile)
+        for tp, tile in self.map.displayed_tiles:
+            rect = QRect(tp.x, tp.y, tp.side, tp.side)
+
+            t = self.tile_cache.get(tile)
+            if t.fetched:
+                img = t.img.toqimage()
+                painter.drawImage(rect, img)
+            else:
+                painter.drawRect(rect)
+
+            pos = QPoint(tp.x + tp.side // 2, tp.y + tp.side // 2)
+            txt = "{}, {}".format(tile.x, tile.y)
+            painter.drawText(pos, txt)
 
         painter.end()
 
-    def on_success(self, tile: Tile, img: JpegImagePlugin.JpegImageFile):
-        self.tile_cache.update_tile(tile, img.toqimage())
-        self.update()
-
     def poll_tiles(self):
-        displayed_tiles = [t for _, t in self.state.displayed_tiles]
-        missing_tiles = self.tile_cache.poll_tiles(displayed_tiles)
-        for tile in missing_tiles:
-            worker = Worker.make(tile, self.on_success)
-            self.thread_pool.start(worker)
+        self.update()
+        tiles = (t for _, t in self.map.displayed_tiles)
+        self.tile_cache.update_many(tiles, self.update)
 
     def mousePressEvent(self, e: QMouseEvent):
         if is_left_button(e):
             x, y = get_pos_from_mouse_event(e)
-            self.state = self.state.to_drag_state(x, y)
+            self.map.mouse_down(x, y)
 
     def mouseMoveEvent(self, e: QMouseEvent):
         x, y = get_pos_from_mouse_event(e)
-        self.state = self.state.move_to(x, y)
+        self.map.mouse_move(x, y)
         self.update()
 
     def mouseReleaseEvent(self, e: QMouseEvent):
         self.poll_tiles()
         if is_left_button(e):
-            self.state = self.state.to_idle_state()
+            self.map.mouse_up()
 
     def init_ui(self):
         self.resize(WIDTH, HEIGHT)
@@ -89,9 +75,8 @@ class MyWindow(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.thread_pool = QThreadPool()
         self.tile_cache = Tile_Cache()
-        self.state = State.init(WIDTH, HEIGHT, ORIGIN_X, ORIGIN_Y, TILE_SIDE)
+        self.map = Context(WIDTH, HEIGHT, ORIGIN_X, ORIGIN_Y, TILE_SIDE)
 
         self.init_ui()
         self.poll_tiles()

@@ -1,41 +1,43 @@
+from concurrent import futures
+
+import requests
+from io import BytesIO
+from PIL import Image
+
 from pygis.map import Tile
+from pygis.tile_result import Tile_Result
 
 MAX_TILE_COUNT = 250
+
+TILE_URL = "http://localhost:8000/tile"
+
+
+def fetch_tile(t: Tile):
+    url = "{}?x={}&y={}&z={}".format(TILE_URL, t.x, t.y, t.z)
+    r = requests.get(url)
+    b_img = BytesIO(r.content)
+    return Image.open(b_img)
 
 
 class Tile_Cache:
     def __init__(self):
-        self.fetching = set()
+        self.executor = futures.ThreadPoolExecutor()
         self.cached = {}
-        self.priority = []
 
-    def fetch_tiles(self, tiles: list[Tile]):
+    def get(self, t: Tile):
+        try:
+            img = self.cached[t]
+            return Tile_Result.ok(img)
+        except KeyError:
+            return Tile_Result.missing()
+
+    def update_tile(self, tile, on_success):
+        img = fetch_tile(tile)
+        self.cached[tile] = img
+        on_success()
+
+    def update_many(self, tiles, on_success):
         for t in tiles:
             if t in self.cached:
                 continue
-
-            if t in self.fetching:
-                continue
-
-            self.fetching.add(t)
-
-            yield t
-
-    def clean_cache(self, tiles: list[Tile]):
-        _tiles = set(tiles)
-        old_tiles = [t for t in self.priority if t not in _tiles]
-        self.priority = old_tiles[-MAX_TILE_COUNT:] + tiles
-
-        priority = set(self.priority)
-        self.cached = {k: v for k, v in self.cached.items() if k in priority}
-        self.fetching = {t for t in self.fetching if t in priority}
-
-    def poll_tiles(self, tiles: list[Tile]):
-        yield from self.fetch_tiles(tiles)
-        self.clean_cache(tiles)
-
-    def get_tile(self, t: Tile):
-        return self.cached.get(t)
-
-    def update_tile(self, tile: Tile, data: str):
-        self.cached[tile] = data
+            self.executor.submit(self.update_tile, t, on_success)

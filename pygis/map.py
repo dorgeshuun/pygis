@@ -1,18 +1,14 @@
 from dataclasses import dataclass
 import math
 
+from pygis.tile import Tile, Tile_Range
 
-@dataclass(frozen=True)
-class Point:
+
+@dataclass
+class Tile_Position:
     x: int
     y: int
-
-
-@dataclass(frozen=True)
-class Tile:
-    x: int
-    y: int
-    z: int
+    side: int
 
 
 @dataclass
@@ -28,20 +24,26 @@ class Map:
         y = self.origin_y + dy
         return Map(self.width, self.height, x, y, self.tile_side)
 
+    def get_tile_origin(self, tile: Tile):
+        x = self.origin_x + tile.x * self.tile_side
+        y = self.origin_y + tile.y * self.tile_side
+        return x, y
+
+    @property
+    def top_left_tile(self):
+        i = -math.ceil(self.origin_x / self.tile_side)
+        j = -math.ceil(self.origin_y / self.tile_side)
+        return Tile(i, j, 0)
+
+    @property
+    def bottom_right_tile(self):
+        i = math.ceil((self.width - self.origin_x) / self.tile_side)
+        j = math.ceil((self.height - self.origin_y) / self.tile_side)
+        return Tile(i, j, 0)
+
     @property
     def tiles(self):
-        imin = -math.ceil(self.origin_x / self.tile_side)
-        jmin = -math.ceil(self.origin_y / self.tile_side)
-
-        imax = math.ceil((self.width - self.origin_x) / self.tile_side)
-        jmax = math.ceil((self.height - self.origin_y) / self.tile_side)
-
-        for i in range(imin, imax):
-            for j in range(jmin, jmax):
-                x = self.origin_x + i * self.tile_side
-                y = self.origin_y + j * self.tile_side
-
-                p = Point(x, y)
-                t = Tile(i, j, 0)
-
-                yield p, t
+        for t in Tile_Range(self.top_left_tile, self.bottom_right_tile):
+            x, y = self.get_tile_origin(t)
+            tile_position = Tile_Position(x, y, self.tile_side)
+            yield tile_position, t

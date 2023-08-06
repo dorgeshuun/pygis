@@ -3,6 +3,7 @@ from fastapi.responses import StreamingResponse
 import random
 from io import BytesIO
 from PIL import Image
+from asyncio import sleep
 
 width = 256
 height = 256
@@ -16,6 +17,7 @@ def get_rnd_color():
 
 @app.get("/tile")
 async def tile(x: int, y: int, z: int):
+    await sleep(0.2)
     output = BytesIO()
     img = Image.new(
         mode="RGB",

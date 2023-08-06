@@ -3,70 +3,92 @@ from dataclasses import dataclass
 from pygis.map import Map
 
 
-@dataclass
-class State:
-    @property
-    def map(self):
-        raise NotImplementedError()
+class Context:
+    def __init__(
+        self,
+        width: int,
+        height: int,
+        origin_x: int,
+        origin_y: int,
+        tile_side: int
+    ):
+        map = Map(width, height, origin_x, origin_y, tile_side)
+        self.state = Idle_State(self, map)
+
+    def transition_to(self, state):
+        self.state = state
 
     @property
     def displayed_tiles(self):
-        return self.map.tiles
+        return self.state.map.tiles
 
-    @staticmethod
-    def init(width: int, height: int, origin_x: int, origin_y: int, tile_side: int):
-        map = Map(width, height, origin_x, origin_y, tile_side)
-        return IdleState(map)
+    def mouse_move(self, x: int, y: int):
+        self.state.mouse_move(x, y)
 
-    @property
-    def to_drag_state(self):
-        raise NotImplementedError()
+    def mouse_down(self, x: int, y: int):
+        self.state.mouse_down(x, y)
 
-    @property
-    def to_idle_state(self):
-        raise NotImplementedError()
-
-    def move_to(self, x: int, y: int):
-        raise NotImplementedError()
+    def mouse_up(self):
+        self.state.mouse_up()
 
 
 @dataclass
-class DragState(State):
-    saved_map: Map
-    click_x: int
-    click_y: int
-    drag_x: int
-    drag_y: int
+class State:
+    context: Context
+    _map: Map
 
     @property
     def map(self):
-        dx = self.drag_x - self.click_x
-        dy = self.drag_y - self.click_y
-        return self.saved_map.move(dx, dy)
+        raise NotImplementedError()
 
-    def to_drag_state(self, x: int, y: int):
-        return self
+    def mouse_move(self, x: int, y: int):
+        raise NotImplementedError()
 
-    def to_idle_state(self):
-        return IdleState(self.map)
+    def mouse_down(self, x: int, y: int):
+        raise NotImplementedError()
 
-    def move_to(self, x: int, y: int):
-        return DragState(self.saved_map, self.click_x, self.click_y, x, y)
+    def mouse_up(self):
+        raise NotImplementedError()
 
 
 @dataclass
-class IdleState(State):
-    _map: Map
+class Idle_State(State):
 
     @property
     def map(self):
         return self._map
 
-    def to_drag_state(self, x: int, y: int):
-        return DragState(self.map, x, y, x, y)
+    def mouse_move(self, x: int, y: int):
+        pass
 
-    def to_idle_state(self):
-        return self
+    def mouse_down(self, x: int, y: int):
+        next_state = Drag_State(self.context, self._map, x, y, x, y)
+        self.context.transition_to(next_state)
 
-    def move_to(self, x: int, y: int):
-        return self
+    def mouse_up(self):
+        raise NotImplementedError()
+
+
+@dataclass
+class Drag_State(State):
+    click_x: int
+    click_y: int
+    hover_x: int
+    hover_y: int
+
+    @property
+    def map(self):
+        dx = self.hover_x - self.click_x
+        dy = self.hover_y - self.click_y
+        return self._map.move(dx, dy)
+
+    def mouse_move(self, x: int, y: int):
+        self.hover_x = x
+        self.hover_y = y
+
+    def mouse_down(self):
+        raise NotImplementedError()
+
+    def mouse_up(self):
+        next_state = Idle_State(self.context, self.map)
+        self.context.transition_to(next_state)
