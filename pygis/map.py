@@ -24,6 +24,9 @@ class Map:
         y = self.origin_y + dy
         return Map(self.width, self.height, x, y, self.tile_side)
 
+    def resize(self, width: int, height: int):
+        return Map(width, height, self.origin_x, self.origin_y, self.tile_side)
+
     def get_tile_origin(self, tile: Tile):
         x = self.origin_x + tile.x * self.tile_side
         y = self.origin_y + tile.y * self.tile_side

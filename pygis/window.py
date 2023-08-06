@@ -1,5 +1,5 @@
 from PyQt6.QtCore import QRect, QPoint
-from PyQt6.QtGui import QMouseEvent, QPainter
+from PyQt6.QtGui import QMouseEvent, QResizeEvent, QPainter
 from PyQt6.QtWidgets import QWidget
 
 from pygis.state import Context
@@ -64,6 +64,12 @@ class MyWindow(QWidget):
         self.poll_tiles()
         if is_left_button(e):
             self.map.mouse_up()
+
+    def resizeEvent(self, e: QResizeEvent):
+        w = e.size().width()
+        h = e.size().height()
+        self.map.resize(w, h)
+        self.poll_tiles()
 
     def init_ui(self):
         self.resize(WIDTH, HEIGHT)

@@ -31,6 +31,9 @@ class Context:
     def mouse_up(self):
         self.state.mouse_up()
 
+    def resize(self, width: int, height: int):
+        self.state.resize(width, height)
+
 
 @dataclass
 class State:
@@ -50,6 +53,9 @@ class State:
     def mouse_up(self):
         raise NotImplementedError()
 
+    def resize(self, width: int, height: int):
+        raise NotImplementedError()
+
 
 @dataclass
 class Idle_State(State):
@@ -67,6 +73,9 @@ class Idle_State(State):
 
     def mouse_up(self):
         raise NotImplementedError()
+
+    def resize(self, width, height):
+        self._map = self._map.resize(width, height)
 
 
 @dataclass
@@ -92,3 +101,6 @@ class Drag_State(State):
     def mouse_up(self):
         next_state = Idle_State(self.context, self.map)
         self.context.transition_to(next_state)
+
+    def resize(self, width: int, height: int):
+        raise NotImplementedError()
