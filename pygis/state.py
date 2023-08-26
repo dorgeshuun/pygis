@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 
 from pygis.map import Map
-from pygis.tile import Tile
 
 
 class Context:
