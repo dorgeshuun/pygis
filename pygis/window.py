@@ -1,5 +1,5 @@
 from PyQt6.QtCore import QRect, QPoint
-from PyQt6.QtGui import QMouseEvent, QResizeEvent, QPainter
+from PyQt6.QtGui import QMouseEvent, QResizeEvent, QWheelEvent, QPainter, QCursor
 from PyQt6.QtWidgets import QWidget
 
 from pygis.state import Context
@@ -10,7 +10,6 @@ WIDTH = 800
 HEIGHT = 600
 ORIGIN_X = 250
 ORIGIN_Y = 250
-TILE_SIDE = 100
 
 
 def is_left_button(e: QMouseEvent):
@@ -40,7 +39,7 @@ class MyWindow(QWidget):
                 painter.drawRect(rect)
 
             pos = QPoint(tp.x + tp.side // 2, tp.y + tp.side // 2)
-            txt = "{}, {}".format(tile.x, tile.y)
+            txt = "{}, {}, {}".format(tile.x, tile.y, tile.z)
             painter.drawText(pos, txt)
 
         painter.end()
@@ -58,7 +57,7 @@ class MyWindow(QWidget):
     def mouseMoveEvent(self, e: QMouseEvent):
         x, y = get_pos_from_mouse_event(e)
         self.map.mouse_move(x, y)
-        self.update()
+        self.poll_tiles()
 
     def mouseReleaseEvent(self, e: QMouseEvent):
         self.poll_tiles()
@@ -71,6 +70,20 @@ class MyWindow(QWidget):
         self.map.resize(w, h)
         self.poll_tiles()
 
+    def wheelEvent(self, e: QWheelEvent):
+        screen_cursor_pos = QCursor.pos()
+        window_cursor_pos = self.mapFromGlobal(screen_cursor_pos)
+        x = window_cursor_pos.x()
+        y = window_cursor_pos.y()
+
+        if e.angleDelta().y() > 0:
+            self.map.zoom_in(x, y)
+        else:
+            self.map.zoom_out(x, y)
+
+        self.poll_tiles()
+        self.update()
+
     def init_ui(self):
         self.resize(WIDTH, HEIGHT)
         self.move(100, 100)
@@ -82,7 +95,7 @@ class MyWindow(QWidget):
         super().__init__()
 
         self.tile_cache = Tile_Cache()
-        self.map = Context(WIDTH, HEIGHT, ORIGIN_X, ORIGIN_Y, TILE_SIDE)
+        self.map = Context(WIDTH, HEIGHT, ORIGIN_X, ORIGIN_Y)
 
         self.init_ui()
         self.poll_tiles()

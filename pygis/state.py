@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from pygis.map import Map
+from pygis.tile import Tile
 
 
 class Context:
@@ -10,9 +11,8 @@ class Context:
         height: int,
         origin_x: int,
         origin_y: int,
-        tile_side: int
     ):
-        map = Map(width, height, origin_x, origin_y, tile_side)
+        map = Map(width, height, origin_x, origin_y, 0)
         self.state = Idle_State(self, map)
 
     def transition_to(self, state):
@@ -33,6 +33,12 @@ class Context:
 
     def resize(self, width: int, height: int):
         self.state.resize(width, height)
+
+    def zoom_in(self, x: int, y: int):
+        self.state.zoom_in(x, y)
+
+    def zoom_out(self, x: int, y: int):
+        self.state.zoom_out(x, y)
 
 
 @dataclass
@@ -56,6 +62,12 @@ class State:
     def resize(self, width: int, height: int):
         raise NotImplementedError()
 
+    def zoom_in(self, x: int, y: int):
+        raise NotImplementedError()
+
+    def zoom_out(self, x: int, y: int):
+        raise NotImplementedError()
+
 
 @dataclass
 class Idle_State(State):
@@ -76,6 +88,12 @@ class Idle_State(State):
 
     def resize(self, width, height):
         self._map = self._map.resize(width, height)
+
+    def zoom_in(self, x: int, y: int):
+        self._map = self._map.zoom_in(x, y)
+
+    def zoom_out(self, x: int, y: int):
+        self._map = self._map.zoom_out(x, y)
 
 
 @dataclass
@@ -104,3 +122,9 @@ class Drag_State(State):
 
     def resize(self, width: int, height: int):
         raise NotImplementedError()
+
+    def zoom_in(self, x: int, y: int):
+        pass
+
+    def zoom_out(self, x: int, y: int):
+        pass

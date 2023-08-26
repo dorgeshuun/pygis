@@ -1,29 +1,24 @@
-from fastapi import FastAPI
-from fastapi.responses import StreamingResponse
-import random
-from io import BytesIO
-from PIL import Image
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from asyncio import sleep
 
-width = 256
-height = 256
+import os
+from aiofiles import os as aos
+
 
 app = FastAPI()
-
-
-def get_rnd_color():
-    return tuple([random.choice(range(255)) for _ in range(3)])
 
 
 @app.get("/tile")
 async def tile(x: int, y: int, z: int):
     await sleep(0.2)
-    output = BytesIO()
-    img = Image.new(
-        mode="RGB",
-        size=(width, height),
-        color=get_rnd_color()
-    )
-    img.save(output, format="JPEG")
-    output.seek(0)
-    return StreamingResponse(output, media_type="image/jpeg")
+
+    filename = "{}-{}-{}.png".format(z, x, y)
+    filepath = os.path.join(".", "tiles", filename)
+
+    file_exists = await aos.path.isfile(filepath)
+
+    if not file_exists:
+        raise HTTPException(status_code=404)
+
+    return FileResponse(filepath)
