@@ -34,15 +34,6 @@ class Map:
         y = self.origin_y + tile.y * TILE_SIDE
         return x, y
 
-    def get_map_coord(self, x: int, y: int):
-        i = (x - self.origin_x) // TILE_SIDE
-        j = (y - self.origin_y) // TILE_SIDE
-
-        x_pix = (x - self.origin_x) % TILE_SIDE
-        y_pix = (y - self.origin_y) % TILE_SIDE
-
-        return Tile(i, j, self.zoom_lvl).get_map_coord(x_pix, y_pix)
-
     def get_tile_from_coord(self, x: int, y: int):
         i = (x - self.origin_x) // TILE_SIDE
         j = (y - self.origin_y) // TILE_SIDE

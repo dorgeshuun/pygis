@@ -78,15 +78,6 @@ class Tile:
 
         raise Exception()
 
-    def get_map_coord(self, dx: int, dy: int):
-        xmin, ymin = self.sw
-        xmax, ymax = self.ne
-
-        x = dx * (xmax - xmin) // 256 + xmin
-        y = ymax - dy * (ymax - ymin) // 256
-
-        return x, y
-
 
 @dataclass
 class Tile_Range:
