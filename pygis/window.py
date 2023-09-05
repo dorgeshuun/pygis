@@ -1,15 +1,19 @@
-from PyQt6.QtCore import QRect, QPoint
+from PyQt6.QtCore import QRect, Qt
 from PyQt6.QtGui import QMouseEvent, QResizeEvent, QWheelEvent, QPainter, QCursor
-from PyQt6.QtWidgets import QWidget
+from PyQt6.QtWidgets import QWidget, QMainWindow
 
 from pygis.state import Context
 from pygis.tile_cache import Tile_Cache
+from pygis.point import Point
 
 
 WIDTH = 800
 HEIGHT = 600
-ORIGIN_X = 250
-ORIGIN_Y = 250
+ORIGIN_X = -100
+ORIGIN_Y = -350
+ZOOM = 3
+
+POINT_RADIUS = 10
 
 
 def is_left_button(e: QMouseEvent):
@@ -22,13 +26,20 @@ def get_pos_from_mouse_event(e: QMouseEvent):
     return int(x), int(y)
 
 
-class MyWindow(QWidget):
+class MapWidget(QWidget):
 
     def paintEvent(self, _):
         painter = QPainter()
         painter.begin(self)
 
-        for tp, tile in self.map.displayed_tiles:
+        london = Point.from_angular_coords(-0.1275, 51.507222)
+        paris = Point.from_angular_coords(2.352222, 48.856667)
+        berlin = Point.from_angular_coords(13.405, 52.52)
+        capitals = [london, paris, berlin]
+
+        points = []
+
+        for tp, tile, _points in self.map.get_displayed_tiles(capitals):
             rect = QRect(tp.x, tp.y, tp.side, tp.side)
 
             t = self.tile_cache.get(tile)
@@ -38,16 +49,23 @@ class MyWindow(QWidget):
             else:
                 painter.drawRect(rect)
 
-            pos = QPoint(tp.x + tp.side // 2, tp.y + tp.side // 2)
-            txt = "{}, {}, {}".format(tile.x, tile.y, tile.z)
-            painter.drawText(pos, txt)
+            for dx, dy in _points:
+                points.append((tp.x + dx, tp.y + dy))
+
+        painter.setBrush(Qt.GlobalColor.red)
+        for x, y in points:
+            painter.drawEllipse(
+                x - POINT_RADIUS // 2,
+                y - POINT_RADIUS // 2,
+                POINT_RADIUS,
+                POINT_RADIUS
+            )
 
         painter.end()
 
     def poll_tiles(self):
         self.update()
-        tiles = (t for _, t in self.map.displayed_tiles)
-        self.tile_cache.update_many(tiles, self.update)
+        self.tile_cache.update_many(self.map.displayed_tiles, self.update)
 
     def mousePressEvent(self, e: QMouseEvent):
         if is_left_button(e):
@@ -95,7 +113,19 @@ class MyWindow(QWidget):
         super().__init__()
 
         self.tile_cache = Tile_Cache()
-        self.map = Context(WIDTH, HEIGHT, ORIGIN_X, ORIGIN_Y)
+        self.map = Context(WIDTH, HEIGHT, ORIGIN_X, ORIGIN_Y, ZOOM)
 
         self.init_ui()
         self.poll_tiles()
+
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        mapWidget = MapWidget()
+        self.setCentralWidget(mapWidget)
+
+        self.showMaximized()
+        self.setWindowTitle("pygis")
+        self.setStyleSheet("background-color:white")

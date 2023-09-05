@@ -1,9 +1,7 @@
 from dataclasses import dataclass
 import math
-from pyproj import Transformer
 from enum import Enum
-
-transformer = Transformer.from_crs(4326, 3857)
+from pygis.point import Point
 
 
 class Quarter(Enum):
@@ -20,17 +18,12 @@ class Tile:
     z: int
 
     @property
-    def nw_lng_lat(self):
+    def nw(self):
         n = 1 << self.z
         lon_deg = self.x / n * 360.0 - 180.0
         lat_rad = math.atan(math.sinh(math.pi * (1 - 2 * self.y / n)))
         lat_deg = math.degrees(lat_rad)
-        return lat_deg, lon_deg
-
-    @property
-    def nw(self):
-        x, y = transformer.transform(*self.nw_lng_lat)
-        return int(x), int(y)
+        return Point.from_angular_coords(lon_deg, lat_deg)
 
     @property
     def ne(self):
@@ -77,6 +70,24 @@ class Tile:
             return t, Quarter.SW
 
         raise Exception()
+
+    def contains(self, point: Point):
+        nw = self.nw
+        se = self.se
+
+        if point.x < nw.x:
+            return False
+
+        if point.y > nw.y:
+            return False
+
+        if point.x > se.x:
+            return False
+
+        if point.y < se.y:
+            return False
+
+        return True
 
 
 @dataclass

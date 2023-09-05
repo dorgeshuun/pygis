@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from pygis.map import Map
+from pygis.point import Point
 
 
 class Context:
@@ -10,8 +11,9 @@ class Context:
         height: int,
         origin_x: int,
         origin_y: int,
+        zoom: int
     ):
-        map = Map(width, height, origin_x, origin_y, 0)
+        map = Map(width, height, origin_x, origin_y, zoom)
         self.state = Idle_State(self, map)
 
     def transition_to(self, state):
@@ -19,7 +21,10 @@ class Context:
 
     @property
     def displayed_tiles(self):
-        return self.state.map.tiles
+        yield from (t for _tile_pos, t, _ in self.state.map.tiles([]))
+
+    def get_displayed_tiles(self, points: list[Point]):
+        return self.state.map.tiles(points)
 
     def mouse_move(self, x: int, y: int):
         self.state.mouse_move(x, y)

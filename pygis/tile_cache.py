@@ -10,12 +10,12 @@ from pygis.cached_tile import Cached_Tile
 
 MAX_TILE_COUNT = 250
 
-TILE_URL = "http://localhost:8000/tile"
+TILE_URL = "https://tile.openstreetmap.org"
 
 
 def fetch_tile(t: Tile):
-    url = "{}?x={}&y={}&z={}".format(TILE_URL, t.x, t.y, t.z)
-    r = requests.get(url)
+    url = "{}/{}/{}/{}.png".format(TILE_URL, t.z, t.x, t.y)
+    r = requests.get(url, headers={"user-agent": "pygis/0.1"}, timeout=1)
     b_img = BytesIO(r.content)
     return Image.open(b_img)
 

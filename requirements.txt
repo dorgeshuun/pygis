@@ -1,9 +1,5 @@
-# pygis
 PyQt6
 requests
 pillow
-
-# mock server
-uvicorn
-fastapi
-pillow
+pyproj
+typing_extensions
