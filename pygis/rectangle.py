@@ -9,6 +9,7 @@ class Rectangle:
     ne: Point
 
     def contains(self, point: Point):
+
         if point.x < self.sw.x:
             return False
 
