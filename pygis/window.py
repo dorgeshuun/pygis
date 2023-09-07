@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import QWidget, QMainWindow
 from pygis.state import Context
 from pygis.tile_cache import Tile_Cache
 from pygis.point import Point
+from pygis.kdtree import KDTree
 
 
 WIDTH = 800
@@ -26,20 +27,21 @@ def get_pos_from_mouse_event(e: QMouseEvent):
     return int(x), int(y)
 
 
+with open("pygis/mineplants.csv", mode='r') as f:
+    lines = (line.strip().split(";") for line in f)
+    mineplants = [Point.from_angular_coords(lng, lat) for lng, lat in lines]
+    mps = KDTree.from_points(mineplants)
+
+
 class MapWidget(QWidget):
 
     def paintEvent(self, _):
         painter = QPainter()
         painter.begin(self)
 
-        london = Point.from_angular_coords(-0.1275, 51.507222)
-        paris = Point.from_angular_coords(2.352222, 48.856667)
-        berlin = Point.from_angular_coords(13.405, 52.52)
-        capitals = [london, paris, berlin]
-
         points = []
 
-        for tp, tile, _points in self.map.get_displayed_tiles(capitals):
+        for tp, tile, _points in self.map.get_displayed_tiles(mps):
             rect = QRect(tp.x, tp.y, tp.side, tp.side)
 
             t = self.tile_cache.get(tile)

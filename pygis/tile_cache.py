@@ -48,6 +48,7 @@ class Tile_Cache:
 
     def update_many(self, tiles, on_success):
         for t in tiles:
+
             if t in self.cached:
                 self.cached[t] = self.cached[t].reset_ttl
                 continue

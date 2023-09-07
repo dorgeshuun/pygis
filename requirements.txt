@@ -2,4 +2,3 @@ PyQt6
 requests
 pillow
 pyproj
-typing_extensions

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import math
+from pygis.kdtree import KDTree
 
 from pygis.tile import Tile, Tile_Range, Quarter
 from pygis.tile import Point
@@ -75,9 +76,9 @@ class Map:
         return Tile(i, j, self.zoom_lvl)
 
     def get_tile_origin(self, tile: Tile):
-        x = self.origin_x + tile.x * TILE_SIDE
-        y = self.origin_y + tile.y * TILE_SIDE
-        return x, y
+        left = self.origin_x + tile.x * TILE_SIDE
+        top = self.origin_y + tile.y * TILE_SIDE
+        return left, top
 
     def get_tile_from_coord(self, x: int, y: int):
         i = (x - self.origin_x) // TILE_SIDE
@@ -125,9 +126,12 @@ class Map:
         dy = TILE_SIDE - (TILE_SIDE * (p.y - t.sw.y)) // (t.ne.y - t.sw.y)
         return dx, dy
 
-    def tiles(self, points: list[Point]):
+    def tiles(self):
+        yield from Tile_Range(self.top_left_tile, self.bottom_right_tile)
+
+    def tiles_with_points(self, points: KDTree):
         for t in Tile_Range(self.top_left_tile, self.bottom_right_tile):
             x, y = self.get_tile_origin(t)
             tile_position = Tile_Position(x, y, TILE_SIDE)
-            pts = (self.point_in_tile(t, p) for p in points if t.contains(p))
+            pts = (self.point_in_tile(t, p) for p in points.intersect(t.rect))
             yield tile_position, t, pts

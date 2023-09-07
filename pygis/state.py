@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from pygis.map import Map
 from pygis.point import Point
+from pygis.kdtree import KDTree
 
 
 class Context:
@@ -21,10 +22,10 @@ class Context:
 
     @property
     def displayed_tiles(self):
-        yield from (t for _tile_pos, t, _ in self.state.map.tiles([]))
+        return self.state.map.tiles()
 
-    def get_displayed_tiles(self, points: list[Point]):
-        return self.state.map.tiles(points)
+    def get_displayed_tiles(self, points: KDTree):
+        return self.state.map.tiles_with_points(points)
 
     def mouse_move(self, x: int, y: int):
         self.state.mouse_move(x, y)

@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 import math
 from enum import Enum
+
 from pygis.point import Point
+from pygis.shape import Shape
 
 
 class Quarter(Enum):
@@ -71,7 +73,13 @@ class Tile:
 
         raise Exception()
 
+    @property
+    def rect(self):
+        return Shape.rectangle(self.sw, self.ne)
+
     def contains(self, point: Point):
+        return self.rect.contains(point)
+
         nw = self.nw
         se = self.se
 
