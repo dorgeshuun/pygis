@@ -1,11 +1,10 @@
+from typing import TextIO
 from PyQt6.QtCore import QRect, Qt
 from PyQt6.QtGui import QMouseEvent, QResizeEvent, QWheelEvent, QPainter, QCursor
-from PyQt6.QtWidgets import QWidget, QMainWindow
+from PyQt6.QtWidgets import QWidget
 
 from pygis.state import Context
 from pygis.tile_cache import Tile_Cache
-from pygis.point import Point
-from pygis.kdtree import KDTree
 
 
 WIDTH = 800
@@ -27,22 +26,14 @@ def get_pos_from_mouse_event(e: QMouseEvent):
     return int(x), int(y)
 
 
-with open("pygis/mineplants.csv", mode='r') as f:
-    lines = (line.strip().split(";") for line in f)
-    mineplants = [Point.from_angular_coords(lng, lat) for lng, lat in lines]
-    mps = KDTree.from_points(mineplants)
-
-
 class MapWidget(QWidget):
 
     def paintEvent(self, _):
         painter = QPainter()
         painter.begin(self)
 
-        points = []
-
-        for tp, tile, _points in self.map.get_displayed_tiles(mps):
-            rect = QRect(tp.x, tp.y, tp.side, tp.side)
+        for tile, position in self.map.displayed_tiles_position:
+            rect = QRect(position.x, position.y, position.side, position.side)
 
             t = self.tile_cache.get(tile)
             if t.fetched:
@@ -51,17 +42,12 @@ class MapWidget(QWidget):
             else:
                 painter.drawRect(rect)
 
-            for dx, dy in _points:
-                points.append((tp.x + dx, tp.y + dy))
-
         painter.setBrush(Qt.GlobalColor.red)
-        for x, y in points:
-            painter.drawEllipse(
-                x - POINT_RADIUS // 2,
-                y - POINT_RADIUS // 2,
-                POINT_RADIUS,
-                POINT_RADIUS
-            )
+        for px, py in self.map.displayed_points:
+            x = px - POINT_RADIUS // 2
+            y = py - POINT_RADIUS // 2
+            r = POINT_RADIUS
+            painter.drawEllipse(x, y, r, r)
 
         painter.end()
 
@@ -87,6 +73,7 @@ class MapWidget(QWidget):
     def resizeEvent(self, e: QResizeEvent):
         w = e.size().width()
         h = e.size().height()
+
         self.map.resize(w, h)
         self.poll_tiles()
 
@@ -104,30 +91,8 @@ class MapWidget(QWidget):
         self.poll_tiles()
         self.update()
 
-    def init_ui(self):
-        self.resize(WIDTH, HEIGHT)
-        self.move(100, 100)
-        self.setWindowTitle("pygis")
-        self.setStyleSheet('background-color:white')
-        self.show()
-
-    def __init__(self):
+    def __init__(self, file: TextIO):
         super().__init__()
-
         self.tile_cache = Tile_Cache()
-        self.map = Context(WIDTH, HEIGHT, ORIGIN_X, ORIGIN_Y, ZOOM)
-
-        self.init_ui()
+        self.map = Context(file, WIDTH, HEIGHT, ORIGIN_X, ORIGIN_Y, ZOOM)
         self.poll_tiles()
-
-
-class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-
-        mapWidget = MapWidget()
-        self.setCentralWidget(mapWidget)
-
-        self.showMaximized()
-        self.setWindowTitle("pygis")
-        self.setStyleSheet("background-color:white")

@@ -1,6 +1,5 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import math
-from pygis.kdtree import KDTree
 
 from pygis.tile import Tile, Tile_Range, Quarter
 from pygis.tile import Point
@@ -36,13 +35,11 @@ class Map:
         dx = t2_x + TILE_SIDE - t1_x + (t2.x - t3.x - 1) * TILE_SIDE
         dy = t2_y + TILE_SIDE - t1_y + (t2.y - t3.y - 1) * TILE_SIDE
 
-        return Map(
-            self.width,
-            self.height,
-            self.origin_x - dx,
-            self.origin_y - dy,
-            self.zoom_lvl + 1
-        )
+        origin_x = self.origin_x - dx
+        origin_y = self.origin_y - dy
+        zoom_lvl = self.zoom_lvl + 1
+
+        return Map(self.width, self.height, origin_x, origin_y, zoom_lvl)
 
     def zoom_out(self, x: int, y: int):
         t1, t1_x, t1_y = self.get_tile_from_coord(x, y)
@@ -52,13 +49,11 @@ class Map:
         dx = t2_x + TILE_SIDE - t1_x + (t2.x - t3.x - 1) * TILE_SIDE
         dy = t2_y + TILE_SIDE - t1_y + (t2.y - t3.y - 1) * TILE_SIDE
 
-        return Map(
-            self.width,
-            self.height,
-            self.origin_x - dx,
-            self.origin_y - dy,
-            self.zoom_lvl - 1
-        )
+        origin_x = self.origin_x - dx
+        origin_y = self.origin_y - dy
+        zoom_lvl = self.zoom_lvl - 1
+
+        return Map(self.width, self.height, origin_x, origin_y, zoom_lvl)
 
     def resize(self, width, height):
         return Map(width, height, self.origin_x, self.origin_y, self.zoom_lvl)
@@ -75,10 +70,19 @@ class Map:
         j = math.ceil((self.height - self.origin_y) / TILE_SIDE)
         return Tile(i, j, self.zoom_lvl)
 
-    def get_tile_origin(self, tile: Tile):
+    @property
+    def tiles(self):
+        yield from Tile_Range(self.top_left_tile, self.bottom_right_tile)
+
+    def get_tile_position(self, tile: Tile):
         left = self.origin_x + tile.x * TILE_SIDE
         top = self.origin_y + tile.y * TILE_SIDE
-        return left, top
+        return Tile_Position(left, top, TILE_SIDE)
+
+    def point_in_tile(self, t: Tile, p: Point):
+        dx = TILE_SIDE * (p.x - t.sw.x) // (t.ne.x - t.sw.x)
+        dy = TILE_SIDE - (TILE_SIDE * (p.y - t.sw.y)) // (t.ne.y - t.sw.y)
+        return dx, dy
 
     def get_tile_from_coord(self, x: int, y: int):
         i = (x - self.origin_x) // TILE_SIDE
@@ -120,18 +124,3 @@ class Map:
 
             case Quarter.SW:
                 return parent, x // 2, (y + TILE_SIDE) // 2
-
-    def point_in_tile(self, t: Tile, p: Point):
-        dx = TILE_SIDE * (p.x - t.sw.x) // (t.ne.x - t.sw.x)
-        dy = TILE_SIDE - (TILE_SIDE * (p.y - t.sw.y)) // (t.ne.y - t.sw.y)
-        return dx, dy
-
-    def tiles(self):
-        yield from Tile_Range(self.top_left_tile, self.bottom_right_tile)
-
-    def tiles_with_points(self, points: KDTree):
-        for t in Tile_Range(self.top_left_tile, self.bottom_right_tile):
-            x, y = self.get_tile_origin(t)
-            tile_position = Tile_Position(x, y, TILE_SIDE)
-            pts = (self.point_in_tile(t, p) for p in points.intersect(t.rect))
-            yield tile_position, t, pts

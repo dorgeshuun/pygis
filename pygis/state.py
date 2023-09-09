@@ -1,20 +1,24 @@
 from dataclasses import dataclass
+from typing import TextIO
 
 from pygis.map import Map
 from pygis.point import Point
 from pygis.kdtree import KDTree
 
 
+def get_pts_from_file(file: TextIO):
+    lines = (line.strip().split(";") for line in file)
+    points = (Point.from_angular_coords(lng, lat) for lng, lat in lines)
+    return KDTree.from_points(points)
+
+
 class Context:
-    def __init__(
-        self,
-        width: int,
-        height: int,
-        origin_x: int,
-        origin_y: int,
-        zoom: int
-    ):
-        map = Map(width, height, origin_x, origin_y, zoom)
+    def __init__(self, file: TextIO, width: int, height: int, x: int, y: int, zoom: int):
+        self.pts = get_pts_from_file(file)
+
+        # print(self.pts.extent)
+
+        map = Map(width, height, x, y, zoom)
         self.state = Idle_State(self, map)
 
     def transition_to(self, state):
@@ -22,10 +26,20 @@ class Context:
 
     @property
     def displayed_tiles(self):
-        return self.state.map.tiles()
+        return self.state.map.tiles
 
-    def get_displayed_tiles(self, points: KDTree):
-        return self.state.map.tiles_with_points(points)
+    @property
+    def displayed_tiles_position(self):
+        for t in self.displayed_tiles:
+            yield t, self.state.map.get_tile_position(t)
+
+    @property
+    def displayed_points(self):
+        for t in self.displayed_tiles:
+            for p in self.pts.intersect(t.rect):
+                t_pos = self.state.map.get_tile_position(t)
+                dx, dy = self.state.map.point_in_tile(t, p)
+                yield t_pos.x + dx, t_pos.y + dy
 
     def mouse_move(self, x: int, y: int):
         self.state.mouse_move(x, y)

@@ -77,26 +77,6 @@ class Tile:
     def rect(self):
         return Shape.rectangle(self.sw, self.ne)
 
-    def contains(self, point: Point):
-        return self.rect.contains(point)
-
-        nw = self.nw
-        se = self.se
-
-        if point.x < nw.x:
-            return False
-
-        if point.y > nw.y:
-            return False
-
-        if point.x > se.x:
-            return False
-
-        if point.y < se.y:
-            return False
-
-        return True
-
 
 @dataclass
 class Tile_Range:

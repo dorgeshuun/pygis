@@ -52,6 +52,28 @@ class KDTree:
         if self.right and self.check_right(shape):
             yield from self.right.intersect(shape)
 
+    @property
+    def points(self):
+        yield self.value
+
+        if self.left:
+            yield from self.left.points
+
+        if self.right:
+            yield from self.right.points
+
+    @property
+    def extent(self):
+        xmin = min(p.x for p in self.points)
+        ymin = min(p.y for p in self.points)
+        xmax = max(p.x for p in self.points)
+        ymax = max(p.y for p in self.points)
+
+        sw = Point.from_planar_coords(xmin, ymin)
+        ne = Point.from_planar_coords(xmax, ymax)
+
+        return Shape.rectangle(sw, ne)
+
 
 @dataclass
 class X_Node(KDTree):
