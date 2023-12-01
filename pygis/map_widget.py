@@ -1,3 +1,4 @@
+import math
 from typing import TextIO
 from PyQt6.QtCore import QRect, Qt
 from PyQt6.QtGui import QMouseEvent, QResizeEvent, QWheelEvent, QPainter, QCursor
@@ -5,20 +6,14 @@ from PyQt6.QtWidgets import QWidget
 
 from pygis.state import Context
 from pygis.tile_cache import Tile_Cache
-
-
-WIDTH = 800
-HEIGHT = 600
-ORIGIN_X = -100
-ORIGIN_Y = -350
-ZOOM = 3
+from pygis.point import Point
+from pygis.feature import Feature
+from pygis.identify_widget import IdentifyWigdet
 
 POINT_RADIUS = 10
 
-
 def is_left_button(e: QMouseEvent):
     return e.button().name == "LeftButton"
-
 
 def get_pos_from_mouse_event(e: QMouseEvent):
     x = e.position().x()
@@ -43,9 +38,9 @@ class MapWidget(QWidget):
                 painter.drawRect(rect)
 
         painter.setBrush(Qt.GlobalColor.red)
-        for px, py in self.map.displayed_points:
-            x = px - POINT_RADIUS // 2
-            y = py - POINT_RADIUS // 2
+        for p in self.map.displayed_points:
+            x = p.map_pos.x - POINT_RADIUS // 2
+            y = p.map_pos.y - POINT_RADIUS // 2
             r = POINT_RADIUS
             painter.drawEllipse(x, y, r, r)
 
@@ -60,15 +55,44 @@ class MapWidget(QWidget):
             x, y = get_pos_from_mouse_event(e)
             self.map.mouse_down(x, y)
 
+    def get_pts_at_coords(self, click_x: int, click_y: int):
+        for p in self.map.displayed_points:
+            dx = p.map_pos.x - click_x
+            dy = p.map_pos.y - click_y
+
+            dist = math.sqrt(dx * dx + dy * dy)
+
+            if dist * 2 < POINT_RADIUS:
+                yield p
+
+
     def mouseMoveEvent(self, e: QMouseEvent):
         x, y = get_pos_from_mouse_event(e)
         self.map.mouse_move(x, y)
         self.poll_tiles()
 
+    def create_secondary_window(self, feature: Feature):
+        w = IdentifyWigdet(self.secondary_windows, feature)
+        self.secondary_windows.add(w)
+        w.show()
+
     def mouseReleaseEvent(self, e: QMouseEvent):
-        self.poll_tiles()
-        if is_left_button(e):
-            self.map.mouse_up()
+        if not is_left_button(e):
+            return
+
+        payload = self.map.mouse_up()
+        
+        if payload.dragged:
+            return
+
+        selected = None
+        for p in self.get_pts_at_coords(payload.x, payload.y):
+            selected = p
+
+        if not selected:
+            return
+
+        self.create_secondary_window(selected)
 
     def resizeEvent(self, e: QResizeEvent):
         w = e.size().width()
@@ -91,8 +115,9 @@ class MapWidget(QWidget):
         self.poll_tiles()
         self.update()
 
-    def __init__(self, file: TextIO):
+    def __init__(self, width: int, height: int, features: list[Feature]):
         super().__init__()
+        self.secondary_windows = set()
         self.tile_cache = Tile_Cache()
-        self.map = Context(file, WIDTH, HEIGHT, ORIGIN_X, ORIGIN_Y, ZOOM)
+        self.map = Context(features, width, height)
         self.poll_tiles()

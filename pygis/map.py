@@ -1,11 +1,10 @@
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 import math
 
 from pygis.tile import Tile, Tile_Range, Quarter
 from pygis.tile import Point
 
 TILE_SIDE = 256
-
 
 @dataclass
 class Tile_Position:
@@ -21,6 +20,18 @@ class Map:
     origin_x: int
     origin_y: int
     zoom_lvl: int
+
+    @staticmethod
+    def from_extent(width: int, height: int, sw: Point, ne: Point):
+        for i in reversed(range(1, 19)):
+            nw = Tile.from_point(sw.lng, ne.lat, i)
+            se = Tile.from_point(ne.lng, sw.lat, i)
+            tr = Tile_Range(nw, se)
+
+            if tr.width * TILE_SIDE < width and tr.height * TILE_SIDE < height:
+                origin_x = tr.top_left.x * TILE_SIDE
+                origin_y = tr.top_left.y * TILE_SIDE
+                return Map(width, height, -origin_x, -origin_y, i)
 
     def move(self, dx: int, dy: int):
         x = self.origin_x + dx

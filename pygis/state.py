@@ -3,22 +3,28 @@ from typing import TextIO
 
 from pygis.map import Map
 from pygis.point import Point
+from pygis.feature import Feature
 from pygis.kdtree import KDTree
+from pygis.tile import Tile
+from pygis.feature import Attribute
 
+@dataclass
+class _Point:
+    x: int
+    y: int
 
-def get_pts_from_file(file: TextIO):
-    lines = (line.strip().split(";") for line in file)
-    points = (Point.from_angular_coords(lng, lat) for lng, lat in lines)
-    return KDTree.from_points(points)
+@dataclass
+class Point_Position:
+    coords: Point
+    attributes: list[Attribute]
+    map_pos: _Point
 
 
 class Context:
-    def __init__(self, file: TextIO, width: int, height: int, x: int, y: int, zoom: int):
-        self.pts = get_pts_from_file(file)
-
-        # print(self.pts.extent)
-
-        map = Map(width, height, x, y, zoom)
+    def __init__(self, features: list[Feature], width: int, height: int):
+        self.tree = KDTree.from_points(features)
+        extent = self.tree.extent
+        map = Map.from_extent(width, height, extent.sw, extent.ne)
         self.state = Idle_State(self, map)
 
     def transition_to(self, state):
@@ -36,10 +42,11 @@ class Context:
     @property
     def displayed_points(self):
         for t in self.displayed_tiles:
-            for p in self.pts.intersect(t.rect):
+            for p in self.tree.intersect(t.rect):
                 t_pos = self.state.map.get_tile_position(t)
                 dx, dy = self.state.map.point_in_tile(t, p)
-                yield t_pos.x + dx, t_pos.y + dy
+                yield Point_Position(p.point, p.attributes, _Point(t_pos.x + dx, t_pos.y + dy))
+                #yield t_pos.x + dx, t_pos.y + dy
 
     def mouse_move(self, x: int, y: int):
         self.state.mouse_move(x, y)
@@ -48,7 +55,7 @@ class Context:
         self.state.mouse_down(x, y)
 
     def mouse_up(self):
-        self.state.mouse_up()
+        return self.state.mouse_up()
 
     def resize(self, width: int, height: int):
         self.state.resize(width, height)
@@ -87,6 +94,9 @@ class State:
     def zoom_out(self, x: int, y: int):
         raise NotImplementedError()
 
+    def get_map_point(self, x: int, y: int):
+        self._map.get_map_point(x, y)
+
 
 @dataclass
 class Idle_State(State):
@@ -116,11 +126,34 @@ class Idle_State(State):
 
 
 @dataclass
+class Drag_Payload:
+    x: int
+    y: int
+
+
+@dataclass
+class Drag(Drag_Payload):
+    
+    @property
+    def dragged(self):
+        return True
+
+
+@dataclass
+class No_Drag(Drag_Payload):
+
+    @property
+    def dragged(self):
+        return False
+
+
+@dataclass
 class Drag_State(State):
     click_x: int
     click_y: int
     hover_x: int
     hover_y: int
+    update_count: int = 0
 
     @property
     def map(self):
@@ -131,6 +164,7 @@ class Drag_State(State):
     def mouse_move(self, x: int, y: int):
         self.hover_x = x
         self.hover_y = y
+        self.update_count += 1
 
     def mouse_down(self):
         raise NotImplementedError()
@@ -138,6 +172,7 @@ class Drag_State(State):
     def mouse_up(self):
         next_state = Idle_State(self.context, self.map)
         self.context.transition_to(next_state)
+        return No_Drag(self.click_x, self.click_y) if not self.update_count else Drag(self.hover_x, self.hover_y)
 
     def resize(self, width: int, height: int):
         raise NotImplementedError()

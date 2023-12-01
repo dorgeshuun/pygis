@@ -3,6 +3,7 @@ from typing_extensions import Self
 
 from pygis.point import Point
 from pygis.shape import Shape
+from pygis.feature import Feature
 
 
 def split(points: list[Point]) -> tuple[list[Point], Point, list[Point]]:
@@ -28,7 +29,7 @@ def split(points: list[Point]) -> tuple[list[Point], Point, list[Point]]:
 
 @dataclass
 class KDTree:
-    value: Point
+    value: Feature
     left: Self
     right: Self
 
@@ -43,7 +44,7 @@ class KDTree:
         return X_Node.from_points(points)
 
     def intersect(self, shape: Shape):
-        if shape.contains(self.value):
+        if shape.contains(self.value.point):
             yield self.value
 
         if self.left and self.check_left(shape):
