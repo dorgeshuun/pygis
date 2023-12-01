@@ -1,5 +1,6 @@
-PyQt6
-requests
-pillow
-pyproj
-click
+PyQt6==6.5.3
+requests==2.31.0
+pillow==10.1.0
+pyproj==3.6.1
+click==8.1.7
+typing_extensions==4.8.0
