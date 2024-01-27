@@ -1,17 +1,17 @@
 from dataclasses import dataclass
-from typing import TextIO
 
 from pygis.map import Map
 from pygis.point import Point
 from pygis.feature import Feature
 from pygis.kdtree import KDTree
-from pygis.tile import Tile
 from pygis.feature import Attribute
+
 
 @dataclass
 class _Point:
     x: int
     y: int
+
 
 @dataclass
 class Point_Position:
@@ -46,7 +46,6 @@ class Context:
                 t_pos = self.state.map.get_tile_position(t)
                 dx, dy = self.state.map.point_in_tile(t, p)
                 yield Point_Position(p.point, p.attributes, _Point(t_pos.x + dx, t_pos.y + dy))
-                #yield t_pos.x + dx, t_pos.y + dy
 
     def mouse_move(self, x: int, y: int):
         self.state.mouse_move(x, y)
@@ -133,7 +132,7 @@ class Drag_Payload:
 
 @dataclass
 class Drag(Drag_Payload):
-    
+
     @property
     def dragged(self):
         return True

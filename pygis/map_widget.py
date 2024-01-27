@@ -1,13 +1,13 @@
 import math
 
-from PyQt6.QtCore import QRect, Qt
-from PyQt6.QtGui import QMouseEvent, QResizeEvent, QWheelEvent, QPainter, QCursor
+from PyQt6.QtGui import QMouseEvent, QResizeEvent, QWheelEvent, QCursor
 from PyQt6.QtWidgets import QWidget
 
 from pygis.state import Context
 from pygis.tile_cache import Tile_Cache
 from pygis.feature import Feature
 from pygis.identify_widget import IdentifyWigdet
+from pygis.painter import Painter
 
 POINT_RADIUS = 10
 
@@ -25,27 +25,9 @@ def get_pos_from_mouse_event(e: QMouseEvent):
 class MapWidget(QWidget):
 
     def paintEvent(self, _):
-        painter = QPainter()
-        painter.begin(self)
-
-        for tile, position in self.map.displayed_tiles_position:
-            rect = QRect(position.x, position.y, position.side, position.side)
-
-            t = self.tile_cache.get(tile)
-            if t.fetched:
-                img = t.img.toqimage()
-                painter.drawImage(rect, img)
-            else:
-                painter.drawRect(rect)
-
-        painter.setBrush(Qt.GlobalColor.red)
-        for p in self.map.displayed_points:
-            x = p.map_pos.x - POINT_RADIUS // 2
-            y = p.map_pos.y - POINT_RADIUS // 2
-            r = POINT_RADIUS
-            painter.drawEllipse(x, y, r, r)
-
-        painter.end()
+        with Painter(self) as p:
+            p.paint_tiles(self.map.displayed_tiles_position, self.tile_cache)
+            p.paint_points(self.map.displayed_points, POINT_RADIUS)
 
     def poll_tiles(self):
         self.update()
