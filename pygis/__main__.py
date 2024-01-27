@@ -26,12 +26,12 @@ def get_pts_from_file(file: TextIO):
 @click.argument('file', type=click.File('r'), default=sys.stdin)
 def main(file: TextIO):
     app = QApplication([])
+    map_widget = MapWidget(WIDTH, HEIGHT, get_pts_from_file(file))
 
     window = QMainWindow()
     window.resize(WIDTH, HEIGHT)
     window.setWindowTitle("pygis")
     window.setStyleSheet("background-color:white")
-    map_widget = MapWidget(WIDTH, HEIGHT, get_pts_from_file(file))
     window.setCentralWidget(map_widget)
     window.show()
 

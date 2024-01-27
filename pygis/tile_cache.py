@@ -1,4 +1,5 @@
-from concurrent import futures
+import threading
+import queue
 
 import requests
 from io import BytesIO
@@ -21,10 +22,11 @@ def fetch_tile(t: Tile):
 
 
 class Tile_Cache:
-    def __init__(self):
-        self.executor = futures.ThreadPoolExecutor()
+    def __init__(self, on_success):
         self.cached = {}
         self.fetching = set()
+        self.fetching_queue = queue.Queue()
+        self.on_success = on_success
 
     def get(self, t: Tile):
         try:
@@ -39,22 +41,43 @@ class Tile_Cache:
         sliced = ttl_ordered[:MAX_TILE_COUNT]
         self.cached = {t: ct for t, ct in sliced}
 
-    def update_tile(self, tile, on_success):
-        img = fetch_tile(tile)
-        self.update_all()
-        self.cached[tile] = Cached_Tile.create(img)
-        self.fetching.remove(tile)
-        on_success()
+    def worker(self):
+        while True:
+            t = self.fetching_queue.get()
+            img = fetch_tile(t)
+            self.update_all()
+            self.cached[t] = Cached_Tile.create(img)
+            try:
+                self.fetching.remove(t)
+            except KeyError:
+                pass
+            self.on_success()
 
-    def update_many(self, tiles, on_success):
+    def start(self):
+        threading.Thread(target=self.worker, daemon=True).start()
+
+    def clear_fetching(self):
+        self.fetching.clear()
+        while not self.fetching_queue.empty():
+            self.fetching_queue.get()
+
+    def update_tile(self, t: Tile):
+        self.cached[t] = self.cached[t].reset_ttl
+
+    def submit_tile(self, t: Tile):
+        self.fetching.add(t)
+        self.fetching_queue.put(t)
+
+    def update_many(self, tiles):
+        '''called when map extent changed'''
+        self.clear_fetching()
         for t in tiles:
 
             if t in self.cached:
-                self.cached[t] = self.cached[t].reset_ttl
+                self.update_tile(t)
                 continue
 
             if t in self.fetching:
                 continue
 
-            self.fetching.add(t)
-            self.executor.submit(self.update_tile, t, on_success)
+            self.submit_tile(t)

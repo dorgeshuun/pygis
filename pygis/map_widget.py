@@ -31,7 +31,7 @@ class MapWidget(QWidget):
 
     def poll_tiles(self):
         self.update()
-        self.tile_cache.update_many(self.map.displayed_tiles, self.update)
+        self.tile_cache.update_many(self.map.displayed_tiles)
 
     def mousePressEvent(self, e: QMouseEvent):
         if is_left_button(e):
@@ -100,6 +100,7 @@ class MapWidget(QWidget):
     def __init__(self, width: int, height: int, features: list[Feature]):
         super().__init__()
         self.secondary_windows = set()
-        self.tile_cache = Tile_Cache()
+        self.tile_cache = Tile_Cache(self.update)
+        self.tile_cache.start()
         self.map = Context(features, width, height)
         self.poll_tiles()
