@@ -1,19 +1,20 @@
 import math
-from typing import TextIO
+
 from PyQt6.QtCore import QRect, Qt
 from PyQt6.QtGui import QMouseEvent, QResizeEvent, QWheelEvent, QPainter, QCursor
 from PyQt6.QtWidgets import QWidget
 
 from pygis.state import Context
 from pygis.tile_cache import Tile_Cache
-from pygis.point import Point
 from pygis.feature import Feature
 from pygis.identify_widget import IdentifyWigdet
 
 POINT_RADIUS = 10
 
+
 def is_left_button(e: QMouseEvent):
     return e.button().name == "LeftButton"
+
 
 def get_pos_from_mouse_event(e: QMouseEvent):
     x = e.position().x()
@@ -65,7 +66,6 @@ class MapWidget(QWidget):
             if dist * 2 < POINT_RADIUS:
                 yield p
 
-
     def mouseMoveEvent(self, e: QMouseEvent):
         x, y = get_pos_from_mouse_event(e)
         self.map.mouse_move(x, y)
@@ -81,7 +81,7 @@ class MapWidget(QWidget):
             return
 
         payload = self.map.mouse_up()
-        
+
         if payload.dragged:
             return
 

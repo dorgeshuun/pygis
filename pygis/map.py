@@ -1,10 +1,12 @@
-from dataclasses import dataclass
 import math
+from dataclasses import dataclass
 
-from pygis.tile import Tile, Tile_Range, Quarter
-from pygis.tile import Point
+from pygis.point import Point
+from pygis.tile import Tile
+from pygis.tile_range import Tile_Range
 
 TILE_SIDE = 256
+
 
 @dataclass
 class Tile_Position:
@@ -24,9 +26,7 @@ class Map:
     @staticmethod
     def from_extent(width: int, height: int, sw: Point, ne: Point):
         for i in reversed(range(1, 19)):
-            nw = Tile.from_point(sw.lng, ne.lat, i)
-            se = Tile.from_point(ne.lng, sw.lat, i)
-            tr = Tile_Range(nw, se)
+            tr = Tile_Range.from_points(sw, ne, i)
 
             if tr.width * TILE_SIDE < width and tr.height * TILE_SIDE < height:
                 origin_x = tr.top_left.x * TILE_SIDE
@@ -123,15 +123,15 @@ class Map:
     def get_parent_tile(self, t: Tile, x: int, y: int):
         parent, quarter = t.parent
 
-        match quarter:
-            case Quarter.NW:
+        match quarter.name:
+            case 'NW':
                 return parent, x // 2, y // 2
 
-            case Quarter.SE:
+            case 'SE':
                 return parent, (x + TILE_SIDE) // 2, (y + TILE_SIDE) // 2
 
-            case Quarter.NE:
+            case 'NE':
                 return parent, (x + TILE_SIDE) // 2, y // 2
 
-            case Quarter.SW:
+            case 'SW':
                 return parent, x // 2, (y + TILE_SIDE) // 2
