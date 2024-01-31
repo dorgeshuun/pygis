@@ -21,4 +21,4 @@ The program also reads from standard input:
 
 `head culverts.csv | pygis`
 
-![pygis_screenshot.png](https://github.com/dorgeshuun/pygis/pygis_screenshot.png)
+![pygis_screenshot.png](https://github.com/dorgeshuun/pygis/blob/master/pygis_screenshot.png)
