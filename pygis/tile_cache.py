@@ -44,11 +44,13 @@ class Tile_Cache:
     def worker(self):
         while True:
             t = self.fetching_queue.get()
-            img = fetch_tile(t)
-            self.update_all()
-            self.cached[t] = Cached_Tile.create(img)
             try:
+                img = fetch_tile(t)
+                self.update_all()
+                self.cached[t] = Cached_Tile.create(img)
                 self.fetching.remove(t)
+            except requests.exceptions.RequestException:
+                pass
             except KeyError:
                 pass
             self.on_success()
